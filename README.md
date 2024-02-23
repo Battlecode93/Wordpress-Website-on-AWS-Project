@@ -81,4 +81,4 @@ This repository documents the implementation of a highly available 3-tier archit
 - **Amazon EFS:** Distributed NFS share for sharing a single WordPress installation across multiple application servers.
 - **AWS Auto Scaling and Application Load Balancer:** Ensures a dynamic and scalable infrastructure based on resource utilization and user traffic.
 
-This project results in a highly-available, distributed, and fault-tolerant web application. The demonstrated pattern can be reused for various web application technologies wherever state can be externalized to a filesystem, cache, or database. Feel free to use and modify this template for your own projects.
+This project results in a highly-available, distributed, and fault-tolerant web application. The demonstrated pattern can be reused for various web application technologies wherever state can be externalized to a filesystem, cache, or database. 
