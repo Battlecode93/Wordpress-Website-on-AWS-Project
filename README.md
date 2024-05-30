@@ -1,5 +1,8 @@
 # Highly Available WordPress Application
 
+![Alt text](Full-Architecture.png)
+----
+
 ## Project Overview
 
 This repository documents the implementation of a highly available 3-tier architecture for a WordPress web application on Amazon Web Services (AWS). The project ensures a robust network, a high availability data tier using Amazon RDS and ElastiCache, and a scalable application tier with load balancing and auto-scaling capabilities.
