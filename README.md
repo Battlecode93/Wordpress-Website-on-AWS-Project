@@ -5,83 +5,76 @@
 
 ## Project Overview
 
-This repository documents the implementation of a highly available 3-tier architecture for a WordPress web application on Amazon Web Services (AWS). The project ensures a robust network, a high availability data tier using Amazon RDS and ElastiCache, and a scalable application tier with load balancing and auto-scaling capabilities.
+This project demonstrates the deployment of a highly available WordPress application using a three-tier architecture on AWS. The architecture ensures high availability, fault tolerance, and scalability by leveraging AWS services such as VPC, RDS, ElastiCache, EFS, and Auto Scaling.
 
 ## Architecture
 
-### Network Setup
+The architecture consists of three tiers:
+1. **Network Tier**: VPC with subnets and routing configurations.
+2. **Data Tier**: Managed database, caching, and shared filesystem.
+3. **Application Tier**: Load balancer, auto-scaling group, and WordPress servers.
 
-- **VPC Creation:** A Virtual Private Cloud (VPC) named "Wordpress-VPC" was created.
-- **Subnet Configuration:** Established 6 subnets across two availability zones: 2 Public, 2 Application, and 2 Data.
-- **Internet Gateway:** Attached an Internet Gateway to the Wordpress VPC.
-- **Gateways and Routing:** Created two Gateways (one for each public subnet A and B), configured route tables for Application subnets using NAT gateways as the default gateway, and associated the route table with both Application subnets.
+## Network Configuration
 
-### High Availability Data Tier
+### Create the Network
 
-#### Amazon RDS
+- **VPC**: Created a VPC named "WordPress-VPC".
+- **Subnets**: Created 6 subnets:
+  - 2 Public Subnets
+  - 2 Application Subnets
+  - 2 Data Subnets
+- **Internet Gateway**: Attached an Internet Gateway to the VPC.
+- **NAT Gateways**: 
+  - Created two NAT Gateways, one in each public subnet.
+  - Configured route tables for the Application subnets to use the NAT Gateways as the default gateway.
+  - Associated the route tables with the Application subnets.
 
-- **Security Groups:** Two security groups were created — one for the client database and another for the main database.
-- **Inbound Rules:** Edited inbound rules for the main database to allow inbound traffic from the client database security group.
-- **RDS Subnet Group:** Formed an RDS subnet group to specify subnets for database deployment.
-- **Aurora Database Cluster:** Created an Aurora database cluster connected to the VPC and DB subnet group.
+The network setup ensures that resources in the public subnets are accessible from the internet, while resources in the Application and Data subnets can communicate internally and access the internet via the NAT gateways.
 
-#### Amazon ElastiCache
+## Data Tier Configuration
 
-- **Cache Security Groups:** Established cache security groups for the cache client and the main cache.
-- **Inbound Traffic Rules:** Modified inbound traffic rules for the main cache to allow traffic from the cache client security group.
-- **Memcached Configuration:** Configured an ElastiCache Memcached instance, adding a subnet group consisting of Data A and Data B, along with the main cache security group.
+### Build RDS Database
 
-#### Amazon EFS
+- **Security Groups**: Created two security groups for the client database and the main database. Configured inbound rules to allow traffic from the client database security group.
+- **RDS Subnet Group**: Created an RDS subnet group specifying the subnets for database deployment.
+- **Aurora Database Cluster**: Created an Aurora database cluster connected to the VPC and DB subnet group.
 
-- **Filesystem Security Groups:** Made filesystem security groups for Elastic Filesystem (EFS).
-- **Inbound Rules:** Edited inbound rules for traffic coming from FS client security group to the main FS security group.
-- **EFS Cluster:** Configured an EFS cluster, mounting the two Application subnets (A and B) in each availability zone.
+### Configure ElastiCache for Memcached
 
-### Application Tier
+- **Security Groups**: Created cache security groups for the cache client and main cache. Configured inbound rules to allow traffic from the cache client security group.
+- **ElastiCache Instance**: Configured a Memcached instance and added a subnet group with the Data subnets and the main cache security group.
 
-#### Load Balancer
+### Create the Shared Filesystem
 
-- **Load Balancer Security Group:** Created a load balancer security group, allowing HTTP traffic on port 80 only from a specified IP.
-- **Configuration:** Configured a load balancer to distribute application traffic across multiple targets, such as EC2 instances in different AZ zones.
+- **Security Groups**: Created filesystem security groups for the EFS. Configured inbound rules to allow traffic from the FS client security group to the main FS security group.
+- **EFS Cluster**: Configured an EFS cluster and mounted the Application subnets to each AZ, adding the FS security group to both.
 
-#### Launch Template
+The data tier setup provides a shared filesystem, a highly available database, and a caching layer to improve application performance.
 
-- **WordPress Servers Security Group:** Created a security group for WordPress servers, allowing HTTP traffic on port 80 only from the Load Balancer security group.
-- **Launch Template:** Configured a launch template for Auto Scaling Groups, including a custom user data script with EFS, DB name, host, DB username, DB password, and the load balancer. Also included 4 security groups in the launch template: WP cache client, WP DB client, WP EFS client, and WP Wordpress.
+## Application Tier Configuration
 
-#### App Server Auto Scaling Group
+### Create the Load Balancer
 
-- **Auto Scaling Group:** Created an Auto Scaling Group to automatically scale the number of WordPress application servers based on traffic.
-- **Access:** Accessed the WordPress installation site through the DNS name of the Application Load Balancer.
+- **Security Group**: Created a security group for the load balancer, allowing HTTP traffic on port 80 from my IP.
+- **Load Balancer**: Configured a load balancer to distribute traffic across EC2 instances in different AZs.
 
-## Deployment
+### Create a Launch Template
 
-1. **Network Creation:** Execute the network creation script to establish the VPC, subnets, and gateways.
-   ```bash
-   sh create_network.sh
-   ```
+- **Security Group**: Created a security group for WordPress servers, allowing HTTP traffic from the load balancer security group.
+- **Launch Template**: Configured a launch template for auto-scaling groups, including a user data script with EFS, DB details, and security groups (WP cache client, WP DB client, WP EFS client, WP WordPress).
 
-2. **Data Tier Setup:** Run the RDS and ElastiCache setup script to create the database and cache layers.
-   ```bash
-   sh setup_data_tier.sh
-   ```
+### Create the Application Server
 
-3. **Shared Filesystem Configuration:** Execute the EFS setup script for configuring the shared filesystem.
-   ```bash
-   sh configure_shared_filesystem.sh
-   ```
+- **Auto Scaling Group**: Created an auto-scaling group for WordPress application servers, enabling automatic scaling based on traffic.
 
-4. **Application Tier Deployment:** Run the application tier deployment script to set up load balancing, launch templates, and the auto-scaling group.
-   ```bash
-   sh deploy_application_tier.sh
-   ```
+The application tier setup allows for a highly available and scalable WordPress deployment that responds to client traffic dynamically.
 
 ## Summary
 
-- **AWS VPC:** A software-defined network across multiple AWS availability zones.
-- **Amazon RDS:** Managed active/standby multi-node MySQL database deployment with automatic backups and recovery.
-- **Amazon ElastiCache:** Memcached-powered cache to reduce database queries against the HA MySQL database.
-- **Amazon EFS:** Distributed NFS share for sharing a single WordPress installation across multiple application servers.
-- **AWS Auto Scaling and Application Load Balancer:** Ensures a dynamic and scalable infrastructure based on resource utilization and user traffic.
+- **Network**: Created a software-defined network with VPC, subnets, and NAT gateways across multiple AZs.
+- **Database**: Deployed a managed, multi-node MySQL database using Amazon RDS with automatic failover and backups.
+- **Cache**: Implemented a Memcached cache with Amazon ElastiCache to reduce database load.
+- **Filesystem**: Set up a distributed NFS share using Amazon EFS for shared WordPress installation.
+- **Scalability**: Configured auto-scaling and load balancing for dynamic scaling of application servers.
 
-This project results in a highly-available, distributed, and fault-tolerant web application. The demonstrated pattern can be reused for various web application technologies wherever state can be externalized to a filesystem, cache, or database. 
+This architecture provides a robust, scalable, and fault-tolerant WordPress deployment suitable for handling production-level workloads. The design principles and AWS services used can be adapted for various web applications requiring high availability and performance.
